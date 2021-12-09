@@ -1,0 +1,42 @@
+﻿@inject ILocalStorageService localStorage
+@inject AuthenticationStateProvider authProvider
+@inject IAuthService authService
+
+<EditForm Model="loginModel" OnValidSubmit="Login_ValidSubmit">
+    <DataAnnotationsValidator></DataAnnotationsValidator>
+    <div class="form-group">
+        <label for="email">Email</label>
+        <InputText id="email" @bind-Value="loginModel.Email" class="form-control"></InputText>
+        <small>
+            <ValidationMessage  For="(() => loginModel.Email)"></ValidationMessage>
+        </small>
+    </div>
+    <div class="form-group">
+        <label for="password">Password</label>
+        <InputText type="password" id="password" @bind-Value="loginModel.Password" class="form-control"></InputText>
+        <small>
+            <ValidationMessage For="(() => loginModel.Password)"></ValidationMessage>
+        </small>
+    </div>
+    <div class="form-group">
+        <button class="btn btn-primary" type="submit">Login</button>
+    </div>
+</EditForm>
+
+@code {
+    private LoginModel loginModel = new();
+
+    private async void Login_ValidSubmit()
+    {
+        var result = await authService.Login(loginModel);
+        if (result.Success)
+        {
+            await localStorage.SetItemAsync<string>("authToken", result.Data);
+            await authProvider.GetAuthenticationStateAsync();
+        }
+        else
+        {
+            Console.WriteLine("Incorrect credentials");
+        }
+    }
+}

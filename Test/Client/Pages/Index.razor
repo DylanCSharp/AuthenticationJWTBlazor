@@ -1,0 +1,20 @@
+﻿@page "/"
+
+@inject HttpClient Http
+
+@attribute [Authorize]
+
+<AuthorizeView>
+    <Authorized>
+        <h1>Hello, @context.User.Identity.Name</h1>
+    </Authorized>
+    <NotAuthorized>
+        <p>Not Authorized</p>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code{
+
+
+}
+

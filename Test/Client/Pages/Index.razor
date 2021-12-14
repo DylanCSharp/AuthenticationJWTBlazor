@@ -1,6 +1,7 @@
 ﻿@page "/"
 
 @inject HttpClient Http
+@inject ILocalStorageService localStorage
 
 @attribute [Authorize]
 
@@ -13,8 +14,40 @@
     </NotAuthorized>
 </AuthorizeView>
 
+@if (weatherForecasts != null)
+{
+    @foreach (var item in weatherForecasts)
+    {
+        <p>@item.Date</p>
+        <p>@item.TemperatureC</p>
+    }
+}
 @code{
 
+    private List<WeatherForecast> weatherForecasts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            weatherForecasts = await Http.GetFromJsonAsync<List<WeatherForecast>>("WeatherForecast");
+            Console.WriteLine(weatherForecasts.Count + " initial count");
+            if (weatherForecasts.Count > 0)
+            {
+                Console.WriteLine("Setting items");
+                await localStorage.SetItemAsync<List<WeatherForecast>>("weatherForecasts", weatherForecasts.ToList());
+            }
+        }
+        catch (HttpRequestException)
+        {
+            Console.WriteLine("Offline cant recieve new, fetching last updated list");
+            weatherForecasts = await localStorage.GetItemAsync<List<WeatherForecast>>("weatherForecasts");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.GetType().ToString() + " Message: " + ex.Message);
+        }
+    }
 
 }
 

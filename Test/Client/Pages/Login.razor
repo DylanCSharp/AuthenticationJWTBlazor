@@ -28,15 +28,26 @@
 
     private async void Login_ValidSubmit()
     {
-        var result = await authService.Login(loginModel);
-        if (result.Success)
+        try
         {
-            await localStorage.SetItemAsync<string>("authToken", result.Data);
-            await authProvider.GetAuthenticationStateAsync();
+            var result = await authService.Login(loginModel);
+            if (result.Success)
+            {
+                await localStorage.SetItemAsync<string>("authToken", result.Data);
+                await authProvider.GetAuthenticationStateAsync();
+            }
+            else
+            {
+                Console.WriteLine("Incorrect credentials");
+            }
         }
-        else
+        catch (HttpRequestException)
         {
-            Console.WriteLine("Incorrect credentials");
+            Console.WriteLine("Not online, cant sign in. Should fetch token and allow some interaction");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.GetType().ToString() + " Message: " + ex.Message);
         }
     }
 }

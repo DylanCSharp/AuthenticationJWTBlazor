@@ -1,5 +1,8 @@
 ﻿@inherits LayoutComponentBase
 
+@inject ILocalStorageService localStorage
+@inject HttpClient Http
+
 <div class="page">
     <div class="sidebar">
         <NavMenu />
@@ -15,3 +18,104 @@
         </div>
     </div>
 </div>
+
+@code {    
+    List<Users> listInLocalStorage = new();
+    List<Users> mainLayoutUsers = new();
+
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+
+
+            try
+            {
+                Console.WriteLine("Back online");
+                try
+                {
+                    listInLocalStorage = await localStorage.GetItemAsync<List<Users>>("users");
+                }
+                catch (Exception)
+                {
+                    Console.WriteLine("List exception");
+                }
+
+                mainLayoutUsers = await Http.GetFromJsonAsync<List<Users>>("api/user/GetAllUsers");
+
+                if (listInLocalStorage.SequenceEqual(mainLayoutUsers) is false)
+                {
+                    var response = await Http.PutAsJsonAsync<List<Users>>("api/user/updateusers", listInLocalStorage);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        Console.Write("Success post back when back online");
+                    }
+                    mainLayoutUsers = await Http.GetFromJsonAsync<List<Users>>("api/user/GetAllUsers");
+                }
+
+                await localStorage.SetItemAsync<List<Users>>("users", mainLayoutUsers);
+
+                Console.WriteLine("Populating users in mainlayout");
+
+            }
+            catch (HttpRequestException)
+            {
+                Console.WriteLine("Offline in main layout");
+                var authToken = await localStorage.GetItemAsStringAsync("authToken");
+                if (string.IsNullOrEmpty(authToken))
+                {
+                    Console.WriteLine("You need to sign in online so we can store your credentials locally");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Message Main Layout:" + ex.Message, "Type:" + ex.GetType().ToString());
+            }
+        }
+        else
+        {
+            Console.WriteLine("Back online");
+            try
+            {
+                listInLocalStorage = await localStorage.GetItemAsync<List<Users>>("users");
+            }
+            catch (Exception)
+            {
+                Console.WriteLine("List exception");
+            }
+
+            mainLayoutUsers = await Http.GetFromJsonAsync<List<Users>>("api/user/GetAllUsers");
+
+            if (listInLocalStorage.SequenceEqual(mainLayoutUsers) is false)
+            {
+                var response = await Http.PutAsJsonAsync<List<Users>>("api/user/updateusers", listInLocalStorage);
+                if (response.IsSuccessStatusCode)
+                {
+                    Console.Write("Success post back when back online");
+                }
+                mainLayoutUsers = await Http.GetFromJsonAsync<List<Users>>("api/user/GetAllUsers");
+            }
+
+            await localStorage.SetItemAsync<List<Users>>("users", mainLayoutUsers);
+
+            Console.WriteLine("Populating users in mainlayout");
+
+        }
+            catch (HttpRequestException)
+        {
+            Console.WriteLine("Offline in main layout");
+            var authToken = await localStorage.GetItemAsStringAsync("authToken");
+            if (string.IsNullOrEmpty(authToken))
+            {
+                Console.WriteLine("You need to sign in online so we can store your credentials locally");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Message Main Layout:" + ex.Message, "Type:" + ex.GetType().ToString());
+        }
+    }
+    }
+
+}

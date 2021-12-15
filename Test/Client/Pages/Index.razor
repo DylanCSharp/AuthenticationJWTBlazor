@@ -7,6 +7,9 @@
 
 <AuthorizeView>
     <Authorized>
+        @{
+            UserName = context.User.Identity.Name;
+        }
         <h1>Hello, @context.User.Identity.Name</h1>
     </Authorized>
     <NotAuthorized>
@@ -18,18 +21,66 @@
 {
     @foreach (var item in weatherForecasts)
     {
-        <p>@item.Date</p>
-        <p>@item.TemperatureC</p>
+        <p>Date: @item.Date &nbsp;Temperature C: @item.TemperatureC</p>
     }
 }
-@code{
 
+<h6>Forecast Form</h6>
+<EditForm Model="@weatherForm" OnValidSubmit="SubmitForecast_OnClick">
+    <InputText @bind-Value="weatherForm.Summary" class="form-control" DisplayName="Summary"></InputText>
+    <br />
+    <InputDate @bind-Value="weatherForm.Date" class="form-control" DisplayName="Date"></InputDate>
+    <br />
+    <InputNumber @bind-Value="weatherForm.TemperatureC" class="form-control" DisplayName="Temperature in Celsius"></InputNumber>
+    <br />
+    <button class="btn btn-primary">Submit</button>
+</EditForm>
+
+<p></p>
+<p></p>
+<p></p>
+<p></p>
+
+@if (allUsers != null)
+{
+    @foreach (var item in allUsers)
+    {
+        <p>Name: @item.Username &nbsp;Email: @item.Email</p>
+    }
+}
+
+<h6>User Form</h6>
+<EditForm Model="@userForm" OnValidSubmit="SubmitUser_OnClick">
+    <InputText @bind-Value="userForm.Email" class="form-control" DisplayName="Email" type="email"></InputText>
+    <br />
+    <InputText @bind-Value="userForm.Username" class="form-control" DisplayName="Username"></InputText>
+    <br />
+    <button class="btn btn-primary">Submit</button>
+</EditForm>
+
+
+@code{
+    //Dummy test
     private List<WeatherForecast> weatherForecasts;
+
+    //Now testing with a Db to see what happens when I come back online
+    private List<Users> allUsers = new();
+
+
+    //Variables
+    private WeatherForecast weatherForm = new();
+    private Users userForm = new();
+    public string UserName { get; set; }
+
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
+            allUsers = await localStorage.GetItemAsync<List<Users>>("users");
+
+            //Dummy data
+            weatherForm.Date = DateTime.Now;
             weatherForecasts = await Http.GetFromJsonAsync<List<WeatherForecast>>("WeatherForecast");
             Console.WriteLine(weatherForecasts.Count + " initial count");
             if (weatherForecasts.Count > 0)
@@ -42,6 +93,70 @@
         {
             Console.WriteLine("Offline cant recieve new, fetching last updated list");
             weatherForecasts = await localStorage.GetItemAsync<List<WeatherForecast>>("weatherForecasts");
+            allUsers = await localStorage.GetItemAsync<List<Users>>("users");
+            Console.WriteLine("Offline fetch successful");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.GetType().ToString() + " Message: " + ex.Message);
+        }
+    }
+
+    private async void SubmitForecast_OnClick()
+    {
+        try
+        {
+            var response = await Http.PostAsJsonAsync<WeatherForecast>("WeatherForecast", weatherForm);
+            if (response.IsSuccessStatusCode)
+            {
+
+            }
+            else
+            {
+
+            }
+        }
+        catch (HttpRequestException)
+        {
+            Console.WriteLine("Saving to local storage");
+            weatherForecasts.Add(weatherForm);
+            weatherForm = new();
+            weatherForm.Date = DateTime.Now;
+            StateHasChanged();
+            await localStorage.SetItemAsync<List<WeatherForecast>>("weatherForecasts", weatherForecasts.ToList());
+            Console.WriteLine("Person who made the update " + UserName);
+            Console.WriteLine("Should fetch updated local list");
+            //When back online, do a check
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.GetType().ToString() + " Message: " + ex.Message);
+        }
+    }
+
+    private async void SubmitUser_OnClick()
+    {
+        try
+        {
+            var response = await Http.PostAsJsonAsync<Users>("api/user/adduser", userForm);
+            if (response.IsSuccessStatusCode)
+            {
+
+            }
+            else
+            {
+
+            }
+        }
+        catch (HttpRequestException)
+        {
+            Console.WriteLine("Saving user to local storage");
+            allUsers.Add(userForm);
+            userForm = new();
+            StateHasChanged();
+            await localStorage.SetItemAsync<List<Users>>("users", allUsers);
+            Console.WriteLine("Person who made the update " + UserName);
+            Console.WriteLine("Should fetch updated local list of users");
         }
         catch (Exception ex)
         {
